@@ -1368,3 +1368,113 @@ export const db = {
     }
   }
 };
+
+// === ADMIN NAMESPACE ===
+db.admin = {
+  getAllUsers: async () => {
+    if (realSupabase) {
+      const { data: profiles, error } = await realSupabase.from('profiles').select('*, trips(id)');
+      if (error) return { data: null, error };
+      const mapped = profiles.map(p => ({
+        ...p,
+        trips_count: (p.trips || []).length
+      }));
+      return { data: mapped, error: null };
+    }
+    return { data: mockDb.getAllUsers(), error: null };
+  },
+
+  getPopularCities: async () => {
+    if (realSupabase) {
+      const { data: stops, error } = await realSupabase
+        .from('trip_stops')
+        .select('destination_id, destinations(name, country, image_url)');
+      if (error) return { data: null, error };
+
+      const counts = {};
+      stops.forEach(s => {
+        const id = s.destination_id;
+        if (!counts[id]) {
+          counts[id] = {
+            id,
+            name: s.destinations?.name || 'Unknown',
+            country: s.destinations?.country || 'Global',
+            image_url: s.destinations?.image_url,
+            count: 0
+          };
+        }
+        counts[id].count += 1;
+      });
+
+      const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+      return { data: sorted, error: null };
+    }
+    return { data: mockDb.getPopularCities(), error: null };
+  },
+
+  getPopularActivities: async () => {
+    if (realSupabase) {
+      const { data: items, error } = await realSupabase
+        .from('itinerary_items')
+        .select('activity_name, cost');
+      if (error) return { data: null, error };
+
+      const counts = {};
+      items.forEach(i => {
+        const name = i.activity_name;
+        if (!counts[name]) {
+          counts[name] = { name, count: 0, cost: i.cost || 0, category: 'Activities' };
+        }
+        counts[name].count += 1;
+      });
+
+      const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+      return { data: sorted, error: null };
+    }
+    return { data: mockDb.getPopularActivities(), error: null };
+  },
+
+  getPlatformStats: async () => {
+    if (realSupabase) {
+      const { data: profiles } = await realSupabase.from('profiles').select('id');
+      const { data: trips } = await realSupabase.from('trips').select('budget, start_date, end_date');
+      const { data: expenses } = await realSupabase.from('expenses').select('amount');
+
+      const totalUsers = (profiles || []).length || 1;
+      const totalTrips = (trips || []).length || 1;
+      const totalBudget = (trips || []).reduce((a, c) => a + Number(c.budget || 0), 0);
+      const avgBudget = Math.round(totalBudget / totalTrips);
+      const totalExpenses = (expenses || []).reduce((a, c) => a + Number(c.amount || 0), 0);
+
+      const now = new Date();
+      let ongoing = 0, upcoming = 0, completed = 0;
+      (trips || []).forEach(t => {
+        const s = new Date(t.start_date);
+        const e = new Date(t.end_date);
+        if (now >= s && now <= e) ongoing++;
+        else if (now < s) upcoming++;
+        else completed++;
+      });
+
+      return {
+        data: {
+          totalUsers,
+          totalTrips,
+          avgBudget,
+          totalExpenses,
+          statusBreakdown: { ongoing, upcoming, completed },
+          tripsOverTime: [
+            { month: 'Jan', count: 1 },
+            { month: 'Feb', count: 2 },
+            { month: 'Mar', count: 4 },
+            { month: 'Apr', count: 3 },
+            { month: 'May', count: 5 }
+          ]
+        },
+        error: null
+      };
+    }
+    return { data: mockDb.getPlatformStats(), error: null };
+  }
+};
+
