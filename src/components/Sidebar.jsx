@@ -42,7 +42,7 @@ export default function Sidebar({
   ];
 
   if (activeUser?.is_admin) {
-    baseMenuItems.unshift({ id: 'admin', label: 'Admin Dashboard', icon: ShieldCheck });
+    baseMenuItems.unshift({ id: 'admin', label: 'Admin', icon: ShieldCheck });
   }
 
   const menuItems = baseMenuItems;
