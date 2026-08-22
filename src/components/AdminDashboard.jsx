@@ -9,9 +9,7 @@ import {
   ShieldCheck, 
   BookOpen, 
   Activity, 
-  ChevronRight,
-  Eye,
-  Award
+  Eye
 } from 'lucide-react';
 
 export default function AdminDashboard({ activeUser, onNavigate, onSelectTrip }) {
